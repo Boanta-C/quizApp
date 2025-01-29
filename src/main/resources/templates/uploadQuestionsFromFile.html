@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Upload Questions</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+<div class="container mt-5">
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h1 class="card-title text-primary">Upload Questions</h1>
+            <!-- Success and Error Messages -->
+            <div th:if="${message}" class="alert alert-success" role="alert">
+                <p th:text="${message}"></p>
+            </div>
+
+            <!-- Existing Languages and Domains -->
+            <p class="text-secondary">
+                <strong>Existing Languages:</strong>
+                <span th:each="lang, iterStat : ${existingLanguages}"
+                      th:text="${iterStat.index != 0 ? ', ' : ''} + ${lang}"></span>
+                <br>
+                <strong>Existing Domains:</strong>
+                <span th:each="domain, iterStat : ${existingDomains}"
+                      th:text="${iterStat.index != 0 ? ', ' : ''} + ${domain}"></span>
+            </p>
+
+            <!-- File Upload Form -->
+            <form action="/questions/upload-questions" method="post" enctype="multipart/form-data" class="mt-4" onsubmit="return checkCheckboxes();">
+                <div class="mb-3">
+                    <label for="file" class="form-label">Choose CSV or XLSX file:</label>
+                    <input type="file" id="file" name="file" accept=".csv, .xlsx" class="form-control" required>
+                </div>
+
+                <div>
+                    <label style="font-size: smaller; color: red; font-weight: bold;">
+                        Please make sure your CSV respects the following before you upload:</label>
+                    <div>
+                        <input type="checkbox" id="columnsOrderOpenEndedCheck" class="form-check-input" required>
+                        <label for="columnsOrderOpenEndedCheck" class="form-check-label" style="font-size: smaller; font-style: italic;">
+                            The columns order for Open Ended questions is: Question Type, Domain, Language, Question Text, Correct Answer</label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="columnsOrderChoiceCheck" class="form-check-input" required>
+                        <label for="columnsOrderChoiceCheck" class="form-check-label" style="font-size: smaller; font-style: italic;">
+                            The columns order for Single and Multiple Choice questions is: Question Type, Domain, Language, Question Text, Correct Answer</label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="firstRowCheck" class="form-check-input" required>
+                        <label for="firstRowCheck" class="form-check-label" style="font-size: smaller; font-style: italic;">
+                            The first row contains the details of first question. (column names should not be included in .CVS)</label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="emptyCheck" class="form-check-input" required>
+                        <label for="emptyCheck" class="form-check-label" style="font-size: smaller; font-style: italic;">
+                            No field is left empty</label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="difficultyLevelCheck" class="form-check-input" required>
+                        <label for="difficultyLevelCheck" class="form-check-label" style="font-size: smaller; font-style: italic;">
+                            The Difficulty Level is from the following: Easy, Medium, Hard</label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="domainAndLanguageCheck" class="form-check-input" required>
+                        <label for="domainAndLanguageCheck" class="form-check-label" style="font-size: smaller; font-style: italic;">
+                            The Domain and Language are either from the list above or totally new ones</label>
+                    </div>
+                </div>
+
+                <button type="submit" id="uploadButton" class="btn btn-primary" disabled>Upload</button>
+            </form>
+        </div>
+    </div>
+    <div th:if="${errorDetails != null}" class="alert alert-danger" role="alert">
+        <p th:text="'Errors found in the .csv file.'"></p>
+        <ul class="list-group">
+            <li th:each="err : ${errorDetails}" class="list-group-item">
+                <span th:text="${err}"></span>
+            </li>
+        </ul>
+    </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Enable the button only if all checkboxes are checked
+    function checkCheckboxes() {
+        let checkboxes = document.querySelectorAll('input[type="checkbox"]');
+        let allChecked = Array.from(checkboxes).every(checkbox => checkbox.checked);
+
+        // If not all checkboxes are checked, disable the submit button
+        document.getElementById('uploadButton').disabled = !allChecked;
+
+        return allChecked; // Allow form submission only if all checkboxes are checked
+    }
+
+    // Initially run the checkCheckboxes function to ensure button is disabled
+    document.addEventListener("DOMContentLoaded", checkCheckboxes);
+
+    // Add event listeners to checkboxes to monitor changes
+    document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+        checkbox.addEventListener('change', checkCheckboxes);
+    });
+</script>
+</body>
+</html>
