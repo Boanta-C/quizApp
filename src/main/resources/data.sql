@@ -22,8 +22,8 @@ CREATE TABLE options (
 
 INSERT INTO Questions (question_type, question_text, correct_answer, question_domain, question_language, difficulty_level, is_active)
 VALUES
-    ('Open-Ended', 'Explain what a REST API is.', 'A set of rules and conventions for building and interacting with web services', 'Web', 'English', 'Medium', true),
-    ('Multiple-Choice', 'Which of the following is the most popular programming language?', 'A,B', 'Programming', 'English', 'Medium', true);
+    ('Open Ended', 'Explain what a REST API is.', 'A set of rules and conventions for building and interacting with web services', 'Web', 'English', 'Medium', true),
+    ('Multiple Choice', 'Which of the following is the most popular programming language?', 'A,B', 'Programming', 'English', 'Medium', true);
 
 INSERT INTO Options (question_id, is_correct, option_text)
 VALUES

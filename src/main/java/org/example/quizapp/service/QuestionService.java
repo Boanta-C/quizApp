@@ -86,12 +86,43 @@ public class QuestionService {
 
         if("Single Choice".equals(questionDTO.getQuestionType()) ||
                 "Multiple Choice".equals(questionDTO.getQuestionType())) {
+            char letter = 'A';
             for (OptionDTO optionDTO : questionDTO.getOptions()) {
                 Option option = new Option();
-                option.setOptionText(optionDTO.getOptionText());
+                option.setOptionText(letter + ". " + optionDTO.getOptionText());
                 option.setCorrect(optionDTO.isCorrect());
                 option.setQuestion(question);
                 optionRepository.save(option);
+                letter++;
+            }
+        }
+    }
+
+    @Transactional
+    public void editQuestion(QuestionDTO questionDTO) {
+        Question question = new Question();
+        question.setId(questionDTO.getId());
+        question.setLanguage(questionDTO.getLanguage());
+        question.setDomain(questionDTO.getDomain());
+        question.setQuestionText(questionDTO.getQuestionText());
+        question.setQuestionType(questionDTO.getQuestionType());
+        question.setCorrectAnswer(questionDTO.getCorrectAnswer());
+        question.setDifficultyLevel(questionDTO.getDifficultyLevel());
+        question.setActive(true);
+
+        questionRepository.save(question);
+
+        if("Single Choice".equals(questionDTO.getQuestionType()) ||
+                "Multiple Choice".equals(questionDTO.getQuestionType())) {
+            char letter = 'A';
+            optionRepository.deleteByQuestionId(questionDTO.getId());
+            for (OptionDTO optionDTO : questionDTO.getOptions()) {
+                Option option = new Option();
+                option.setOptionText(letter + ". " + optionDTO.getOptionText());  // Prepend letter here
+                option.setCorrect(optionDTO.isCorrect());
+                option.setQuestion(question);
+                optionRepository.save(option);
+                letter++;
             }
         }
     }
@@ -103,6 +134,10 @@ public class QuestionService {
 
             List<String[]> rows = csvReader.readAll();
             int rowNumber = 1;
+
+            if (!rows.isEmpty() && "Question Type".equalsIgnoreCase(rows.get(0)[0].trim())) {
+                rows = rows.subList(1, rows.size());
+            }
 
             for (String[] row : rows) {
                 if(row.length < 6) {
@@ -142,8 +177,11 @@ public class QuestionService {
                             "Easy, Medium, Hard");
                 }
 
+                if (("Single Choice".equals(questionType) || "Multiple Choice".equals(questionType)) && row.length < 14) {
+                    errors.add("Row " + rowNumber + ": Missing fields for options.");
+                }
+
                 if(errors.isEmpty()) {
-                    List<OptionDTO> optionDTOs = new ArrayList<>();
                     QuestionDTO questionDTO = new QuestionDTO();
                     questionDTO.setQuestionType(row[0]);
                     questionDTO.setDomain(row[1]);
@@ -151,13 +189,50 @@ public class QuestionService {
                     questionDTO.setDifficultyLevel(row[3]);
                     questionDTO.setQuestionText(row[4]);
                     questionDTO.setCorrectAnswer(row[5]);
-                    addQuestion(questionDTO);
+                    char letter = 'A';
+                    if ("Single Choice".equals(questionType) || "Multiple Choice".equals(questionType)) {
+                        List<OptionDTO> optionDTOs = new ArrayList<>();
+                        for (int i = 6; i < row.length; i += 2) {
+                            String optionText = row[i].trim();
+                            String isCorrectStr = row[i + 1].trim();
+
+                            if (optionText.isEmpty()) {
+                                errors.add("Row " + rowNumber + ": Option text is empty.");
+                                continue;
+                            }
+
+                            boolean isCorrect = "true".equalsIgnoreCase(isCorrectStr);
+                            OptionDTO optionDTO = new OptionDTO();
+                            optionDTO.setOptionText(letter + ". " + optionText);
+                            optionDTO.setCorrect(isCorrect);
+                            optionDTOs.add(optionDTO);
+                            letter++;
+                        }
+                        questionDTO.setOptions(optionDTOs);
+                    }
+
+                    if (errors.isEmpty()) {
+                        addQuestion(questionDTO);
+                    }
                 }
                 rowNumber++;
             }
         }catch (Exception e) {
-            throw new IOException();
+            throw new IOException("Error processing .CSV file", e);
         }
         return errors;
+    }
+
+    public void toggleActiveStatus(Long id) {
+        Optional<Question> optionalQuestion = questionRepository.findById(id);
+        if (optionalQuestion.isPresent()) {
+            Question question = optionalQuestion.get();
+            question.setActive(!question.isActive());  // Toggle the status
+            questionRepository.save(question);  // Save the updated status
+        }
+    }
+
+    public void deleteQuestionById(Long id) {
+        questionRepository.deleteById(id);
     }
 }

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Quiz App Home</title>
+    <!-- Bootstrap 5.3.0 CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+<!-- Include Header -->
+<div th:replace="~{header :: header}"></div>
+
+<div class="container mt-5">
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h1 class="card-title text-primary text-center">Welcome to the Quiz App</h1>
+            <p class="text-muted text-center">Manage and organize your questions with ease.</p>
+
+            <div class="row justify-content-center">
+                <!-- Manage Questions Section -->
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-primary-subtle text-dark text-center">
+                            <h4 class="mb-0 text-primary">Manage Questions</h4>
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-group text-center">
+                                <li class="list-group-item">
+                                    <a href="/questions/all" class="btn btn-link text-decoration-none fw-bold">All Questions</a>
+                                </li>
+                                <li class="list-group-item">
+                                    <a href="/questions/add-single-question" class="btn btn-link text-decoration-none fw-bold">Add New Question</a>
+                                </li>
+                                <li class="list-group-item">
+                                    <a href="/questions/upload-questions" class="btn btn-link text-decoration-none fw-bold">Upload Questions from File</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap JS Bundle (includes Popper.js) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>

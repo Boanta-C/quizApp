@@ -11,6 +11,8 @@ import java.util.List;
 @Setter
 public class QuestionDTO {
 
+    private Long id;
+
     @NotBlank(message =  "Question text cannot be empty")
     private String questionText;
 

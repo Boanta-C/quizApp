@@ -4,6 +4,9 @@
     <title>Test Setup Page</title>
 </head>
 <body>
+
+<div th:replace="~{header :: header}"></div>
+
 <h1>Selected Questions</h1>
 <ul>
     <li th:each="question : ${questions}" th:text="${question.questionText}"></li>
