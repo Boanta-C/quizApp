@@ -20,16 +20,16 @@ public class QuestionDTO {
     private String correctAnswer;
 
     @NotNull(message = "Question type cannot be null")
-    private String questionType;
+    private String questionType = "";
 
     @NotNull(message = "Domain cannot be null")
-    private String domain;
+    private String domain = "";
 
     @NotNull(message = "Language cannot be null")
-    private String language;
+    private String language = "";
 
     @NotNull(message = "difficultyLevel cannot be null")
-    private String difficultyLevel;
+    private String difficultyLevel = "";
 
     private boolean isActive;
 

@@ -25,7 +25,7 @@ public class Option {
     @JoinColumn(name = "question_id")
     private Question question;
 
-    @Column(name = "option_text", nullable = false)
+    @Column(name = "option_text", columnDefinition = "TEXT", nullable = false)
     private String optionText;
 
     @Column(name = "is_correct", nullable = false)

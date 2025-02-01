@@ -44,10 +44,6 @@ public class QuestionService {
         return questionRepository.findAll();
     }
 
-    public List<Question> getQuestionsByDomain(String domain) {
-        return questionRepository.findQuestionsByDomain(domain);
-    }
-
     public Optional<Question> getQuestionById(Long id) {
         return questionRepository.findById(id);
     }
@@ -66,6 +62,53 @@ public class QuestionService {
 
     public List<String> getDistinctDifficultyLevels() {
         return questionRepository.findDistinctDifficultyLevels();
+    }
+
+    public List<String> getAllDomains() {
+        return questionRepository.findAllDomains();
+    }
+
+    public List<String> getAllLanguages() {
+        return questionRepository.findAllLanguages();
+    }
+
+    public List<String> getDomainsByLanguage(String language) {
+        return questionRepository.findDomainsByLanguage(language);
+    }
+
+    public List<String> getQuestionTypesByLanguage(String language) {
+        return questionRepository.findQuestionTypesByLanguage(language);
+    }
+
+    public List<String> getDifficultyLevelByLanguage(String language) {
+        return questionRepository.findDifficultyLevelsByLanguage(language);
+    }
+
+    public List<String> getQuestionTypesByDomainsAndLanguage(List<String> domains, String language) {
+        return questionRepository.getQuestionTypesByDomainsAndLanguage(domains, language);
+    }
+
+    public List<String> getDifficultyLevelsByDomainsAndLanguage(List<String> domains, String language) {
+        return questionRepository.findDifficultyLevelsByDomainsAndLanguage(domains, language);
+    }
+
+    public List<String> getDifficultyLevelsByQuestionTypes(List<String> questionTypes, List<String> domains) {
+        return questionRepository.findDifficultyLevelsByQuestionTypesAndDomains(questionTypes, domains);
+    }
+
+    public Integer getCountNumberOfSelectedQuestions(String language,
+                                                     List<String> domains,
+                                                     List<String> questionTypes,
+                                                     List<String> difficultyLevel) {
+        return questionRepository.countNumberOfSelectedQuestions(language, domains, questionTypes, difficultyLevel);
+    }
+
+    public void deleteAllQuestions() {
+        questionRepository.deleteAll();
+    }
+
+    public void deleteQuestionById(Long id) {
+        questionRepository.deleteById(id);
     }
 
     public List<Question> getRandomQuestions(String language,
@@ -138,11 +181,13 @@ public class QuestionService {
 
     public List<String> uploadQuestionFromCSV(MultipartFile file) throws IOException {
         List<String> errors = new ArrayList<>();
+        List<QuestionDTO> validQuestions = new ArrayList<>();
+
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()));
              CSVReader csvReader = new CSVReader(reader)) {
 
             List<String[]> rows = csvReader.readAll();
-            int rowNumber = 1;
+            int rowNumber = 2;
 
             if (!rows.isEmpty() && "Question Type".equalsIgnoreCase(rows.get(0)[0].trim())) {
                 rows = rows.subList(1, rows.size());
@@ -190,7 +235,7 @@ public class QuestionService {
                     errors.add("Row " + rowNumber + ": Missing fields for options.");
                 }
 
-                if(errors.isEmpty()) {
+
                     QuestionDTO questionDTO = new QuestionDTO();
                     questionDTO.setQuestionType(row[0]);
                     questionDTO.setDomain(row[1]);
@@ -205,8 +250,12 @@ public class QuestionService {
                             String isCorrectStr = row[i + 1].trim();
 
                             if (optionText.isEmpty()) {
-                                errors.add("Row " + rowNumber + ": Option text is empty.");
+                                errors.add("Row " + rowNumber + ": an option text is empty.");
                                 continue;
+                            }
+
+                            if (isCorrectStr.isEmpty()) {
+                                errors.add("Row " + rowNumber + ": missing validation if answer is correct");
                             }
 
                             boolean isCorrect = "true".equalsIgnoreCase(isCorrectStr);
@@ -219,12 +268,18 @@ public class QuestionService {
                     }
 
                     if (errors.isEmpty()) {
-                        addQuestion(questionDTO);
+                        validQuestions.add(questionDTO);
                     }
-                }
                 rowNumber++;
             }
-        }catch (Exception e) {
+            if (!errors.isEmpty()) {
+                return errors;
+            }
+
+            for (QuestionDTO validQuestion : validQuestions) {
+                addQuestion(validQuestion);
+            }
+        } catch (Exception e) {
             throw new IOException("Error processing .CSV file", e);
         }
         return errors;
@@ -239,7 +294,7 @@ public class QuestionService {
         response.setHeader("Content-Disposition", "attachment; filename=questions.csv");
 
         for (Question question : questions) {
-            questionDTOS.add(convertToQuestionDTO(question));
+            questionDTOS.add(convertQuestionToDto(question));
         }
 
 
@@ -247,30 +302,7 @@ public class QuestionService {
             writer.writeNext(headers);
 
             for (QuestionDTO questionDTO : questionDTOS) {
-                List<String> row = new ArrayList<>();
-                row.add(questionDTO.getQuestionType());
-                row.add(questionDTO.getDomain());
-                row.add(questionDTO.getLanguage());
-                row.add(questionDTO.getDifficultyLevel());
-                row.add(questionDTO.getQuestionText());
-                row.add(questionDTO.getCorrectAnswer());
-
-                if (questionDTO.getOptions() != null) {
-                    int optionCount = 1;
-                    for (OptionDTO optionDTO : questionDTO.getOptions()) {
-                        // Ensure the option count doesn't exceed 4 (if you want to limit to 4 options)
-                        if (optionCount <= 4) {
-                            row.add(optionDTO.getOptionText());
-                            row.add(String.valueOf(optionDTO.isCorrect()));
-                            optionCount++;
-                        }
-                    }
-                }
-
-                // Fill in empty columns for missing options (e.g., if there are fewer than 4 options)
-                while (row.size() < 14) {
-                    row.add(""); // Add empty values for missing options
-                }
+                List<String> row = getStrings(questionDTO);
 
                 writer.writeNext(row.toArray(new String[0]));
             }
@@ -288,50 +320,46 @@ public class QuestionService {
         }
     }
 
-    public void deleteQuestionById(Long id) {
-        questionRepository.deleteById(id);
-    }
-
-    public QuestionDTO convertToQuestionDTO(Question question) {
+    public QuestionDTO convertQuestionToDto(Question question) {
         QuestionDTO questionDTO = new QuestionDTO();
         questionDTO.setId(question.getId());
-        questionDTO.setQuestionType(question.getQuestionType());
         questionDTO.setQuestionText(question.getQuestionText());
+        questionDTO.setCorrectAnswer(question.getCorrectAnswer());
+        questionDTO.setQuestionType(question.getQuestionType());
         questionDTO.setDomain(question.getDomain());
         questionDTO.setLanguage(question.getLanguage());
-        questionDTO.setCorrectAnswer(question.getCorrectAnswer());
         questionDTO.setDifficultyLevel(question.getDifficultyLevel());
-        questionDTO.setOptions(optionService.convertByQuestionIdToOptionDTO(question.getId()));
+        questionDTO.setActive(question.isActive());
 
+        if (!questionDTO.getQuestionType().equals("Open Ended")) {
+            List<OptionDTO> optionDTOs = optionService.getOptionsDTOByQuestionId(question.getId());
+            questionDTO.setOptions(optionDTOs);
+        }
         return questionDTO;
     }
 
-    public List<String> getDomainsByLanguage(String language) {
-        return questionRepository.findDomainsByLanguage(language);
-    }
+    private static List<String> getStrings(QuestionDTO questionDTO) {
+        List<String> row = new ArrayList<>();
+        row.add(questionDTO.getQuestionType());
+        row.add(questionDTO.getDomain());
+        row.add(questionDTO.getLanguage());
+        row.add(questionDTO.getDifficultyLevel());
+        row.add(questionDTO.getQuestionText());
+        row.add(questionDTO.getCorrectAnswer());
 
-    public List<String> getQuestionTypesByLanguage(String language) {
-        return questionRepository.findQuestionTypesByLanguage(language);
-    }
-
-    public List<String> getDifficultyLevelByLanguage(String language) {
-        return questionRepository.findDifficultyLevelsByLanguage(language);
-    }
-
-    public List<String> getQuestionTypesByDomains(List<String> domains) {
-        return questionRepository.findQuestionTypesByDomains(domains);
-
-    }
-
-    public List<String> getDifficultyLevelsByQuestionTypes(List<String> questionTypes) {
-        return questionRepository.findDifficultyLevelsByQuestionTypes(questionTypes);
-    }
-
-    public List<String> getDifficultyLevelsByDomains(List<String> domains) {
-        return questionRepository.findDifficultyLevelsByDomains(domains);
-    }
-
-    public void deleteAllQuestions() {
-        questionRepository.deleteAll();
+        if (questionDTO.getOptions() != null) {
+            int optionCount = 1;
+            for (OptionDTO optionDTO : questionDTO.getOptions()) {
+                if (optionCount <= 4) {
+                    row.add(optionDTO.getOptionText());
+                    row.add(String.valueOf(optionDTO.isCorrect()));
+                    optionCount++;
+                }
+            }
+        }
+        while (row.size() < 14) {
+            row.add("");
+        }
+        return row;
     }
 }

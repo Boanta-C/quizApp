@@ -16,27 +16,26 @@
         <!-- Language -->
         <div class="mb-3">
             <label for="language" class="form-label">Language</label>
-            <select id="language" class="form-select" th:field="*{language}" required>
-                <option value="" disabled selected>Choose Language</option>
-                <option value="English">English</option>
-                <option value="Romanian">Romanian</option>
-            </select>
+            <input type="text" id="language" class="form-control" th:field="*{language}"
+                   placeholder="Select a Language from the list or enter a new one." list="languages" required />
+            <datalist id="languages">
+                <option th:each="language : ${languages}" th:value="${language}"></option>
+            </datalist>
             <div class="invalid-feedback">
-                Please select a language.
+                Please select or enter a language.
             </div>
         </div>
 
         <!-- Domain -->
         <div class="mb-3">
             <label for="domain" class="form-label">Domain</label>
-            <select id="domain" class="form-select" th:field="*{domain}" required>
-                <option value="" disabled selected>Choose Domain</option>
-                <option value="Manual QA">Manual QA</option>
-                <option value="Automation QA">Automation QA</option>
-                <option value="Java">Java</option>
-            </select>
+            <input type="text" id="domain" class="form-control" th:field="*{domain}"
+                   placeholder="Select a Domain from the list or enter a new one." list="domains" required/>
+            <datalist id="domains">
+                <option th:each="domain : ${domains}" th:value="${domain}"></option>
+            </datalist>
             <div class="invalid-feedback">
-                Please select a domain.
+                Please select or enter a domain.
             </div>
         </div>
 
@@ -75,14 +74,14 @@
         <!-- Difficulty Level -->
         <div class="mb-3">
             <label for="difficultyLevel" class="form-label">Difficulty Level</label>
-            <select id="difficultyLevel" class="form-select" th:field="*{difficultyLevel}">
-                <option value="" disabled selected>Choose Difficulty Level (optional)</option>
+            <select id="difficultyLevel" class="form-select" th:field="*{difficultyLevel}" required>
+                <option value="" disabled selected>Choose Difficulty Level</option>
                 <option value="Easy">Easy</option>
                 <option value="Medium">Medium</option>
                 <option value="Hard">Hard</option>
             </select>
             <div class="invalid-feedback">
-                Please select a question type.
+                Please select a difficulty level
             </div>
         </div>
 

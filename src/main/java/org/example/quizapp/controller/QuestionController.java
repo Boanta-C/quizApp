@@ -2,11 +2,8 @@ package org.example.quizapp.controller;
 
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import org.example.quizapp.dto.OptionDTO;
 import org.example.quizapp.dto.QuestionDTO;
-import org.example.quizapp.entity.Option;
 import org.example.quizapp.entity.Question;
-import org.example.quizapp.service.OptionService;
 import org.example.quizapp.service.QuestionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -25,7 +22,6 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/questions")
@@ -33,12 +29,9 @@ public class QuestionController {
 
     private final QuestionService questionService;
 
-    private final OptionService optionService;
-
     @Autowired
-    public QuestionController(QuestionService questionService, OptionService optionService) {
+    public QuestionController(QuestionService questionService) {
         this.questionService = questionService;
-        this.optionService = optionService;
     }
 
 
@@ -48,109 +41,23 @@ public class QuestionController {
         List<Question> questions = questionService.getAllQuestions();
 
         for (Question question : questions) {
-            QuestionDTO questionDTO = new QuestionDTO();
-            questionDTO.setId(question.getId());
-            questionDTO.setQuestionText(question.getQuestionText());
-            questionDTO.setCorrectAnswer(question.getCorrectAnswer());
-            questionDTO.setQuestionType(question.getQuestionType());
-            questionDTO.setDomain(question.getDomain());
-            questionDTO.setLanguage(question.getLanguage());
-            questionDTO.setDifficultyLevel(question.getDifficultyLevel());
-            questionDTO.setActive(question.isActive());
-
-            List<Option> options = optionService.getOptionsByQuestionId(question.getId());
-
-            List<OptionDTO> optionDTOs = options.stream()
-                    .map(option -> {
-                        OptionDTO optionDTO = new OptionDTO();
-                        optionDTO.setOptionText(option.getOptionText());
-                        optionDTO.setCorrect(option.isCorrect());
-                        return optionDTO;
-                    })
-                    .collect(Collectors.toList());
-
-            questionDTO.setOptions(optionDTOs);
-
+            QuestionDTO questionDTO = questionService.convertQuestionToDto(question);
             questionsDTO.add(questionDTO);
         }
 
         model.addAttribute("questions", questionsDTO);
-        return "allQuestions";
-    }
-
-    @GetMapping("/edit/{id}")
-    public String showEditQuestion(@PathVariable("id") Long id, Model model) {
-        Optional<Question> question = questionService.getQuestionById(id);
-        QuestionDTO questionDTO = new QuestionDTO();
-        if(question.isPresent()) {
-            questionDTO.setId(question.get().getId());
-            questionDTO.setQuestionText(question.get().getQuestionText());
-            questionDTO.setCorrectAnswer(question.get().getCorrectAnswer());
-            questionDTO.setQuestionType(question.get().getQuestionType());
-            questionDTO.setDomain(question.get().getDomain());
-            questionDTO.setLanguage(question.get().getLanguage());
-            questionDTO.setDifficultyLevel(question.get().getDifficultyLevel());
-            questionDTO.setActive(question.get().isActive());
-
-        List<Option> options = optionService.getOptionsByQuestionId(id);
-        List<OptionDTO> optionDTOs = options.stream()
-                .map(option -> {OptionDTO optionDTO = new OptionDTO();
-                    optionDTO.setOptionText(option.getOptionText());
-                    optionDTO.setCorrect(option.isCorrect());
-                    return optionDTO;}).toList();
-            questionDTO.setOptions(optionDTOs);
-        }
-        model.addAttribute("questionDTO", questionDTO);
-
-        if(questionDTO.getQuestionType().equals("Open Ended")) {
-            return "editOpenQuestion";
-        } else
-            return "editChoiceQuestion";
-
-    }
-
-    @PostMapping("/edit/{id}")
-    public String editQuestion(@ModelAttribute @Valid QuestionDTO questionDTO, Model model, RedirectAttributes redirectAttributes) {
-
-        questionService.editQuestion(questionDTO);
-        model.addAttribute("questionDTO", questionDTO);
-        redirectAttributes.addFlashAttribute("question", questionDTO);
-        return "redirect:/questions/question-edited";
-    }
-
-    @PostMapping("/delete/{id}")
-    public String deleteQuestion(@PathVariable Long id) {
-
-        questionService.deleteQuestionById(id);
-        return "redirect:/questions/all";
-    }
-
-    @PostMapping("/deleteAllQuestions")
-    public String deleteAllQuestions() {
-        questionService.deleteAllQuestions();
-        return "redirect:/questions/all";
-    }
-
-    @GetMapping("/exportAllQuestions")
-    public void exportQuestions(HttpServletResponse response) throws IOException {
-        questionService.exportQuestionsToCSV(response);
-    }
-
-    @PostMapping("/toggleActive/{id}")
-    public String toggleActiveStatus(@PathVariable Long id) {
-        questionService.toggleActiveStatus(id);
-        return "redirect:/questions/all";  // Redirect back to the questions list
+        return "questions/allQuestions";
     }
 
     @GetMapping("/add-single-question")
     public String showAddQuestionForm(Model model) {
+        List<String> domains = questionService.getAllDomains();
+        List<String> languages = questionService.getAllLanguages();
         QuestionDTO questionDTO = new QuestionDTO();
-        questionDTO.setLanguage("");
-        questionDTO.setDomain("");
-        questionDTO.setQuestionType("");
-        questionDTO.setDifficultyLevel("");
         model.addAttribute("questionDTO", questionDTO);
-        return "addQuestion";
+        model.addAttribute("domains", domains);
+        model.addAttribute("languages", languages);
+        return "questions/upload/addQuestion";
     }
 
     @PostMapping("/add-single-question")
@@ -164,12 +71,36 @@ public class QuestionController {
 
     @GetMapping("/question-added")
     public String showQuestionAddedPage() {
-        return "questionAdded";
+        return "questions/upload/questionAdded";
+    }
+
+    @GetMapping("/edit/{id}")
+    public String showEditQuestion(@PathVariable("id") Long id, Model model) {
+        Optional<Question> question = questionService.getQuestionById(id);
+        QuestionDTO questionDTO = new QuestionDTO();
+        if(question.isPresent()) {
+            questionDTO = questionService.convertQuestionToDto(question.get());
+        }
+        model.addAttribute("questionDTO", questionDTO);
+
+        if(questionDTO.getQuestionType().equals("Open Ended")) {
+            return "questions/edit/editOpenQuestion";
+        } else
+            return "questions/edit/editChoiceQuestion";
+    }
+
+    @PostMapping("/edit/{id}")
+    public String editQuestion(@ModelAttribute @Valid QuestionDTO questionDTO, Model model, RedirectAttributes redirectAttributes) {
+
+        questionService.editQuestion(questionDTO);
+        model.addAttribute("questionDTO", questionDTO);
+        redirectAttributes.addFlashAttribute("question", questionDTO);
+        return "redirect:/questions/question-edited";
     }
 
     @GetMapping("/question-edited")
     public String showQuestionEditedPage() {
-        return "questionEdited";
+        return "questions/edit/questionEdited";
     }
 
     @GetMapping("/upload-questions")
@@ -178,7 +109,7 @@ public class QuestionController {
         List<String> existingDomains = questionService.getDistinctDomains();
         model.addAttribute("existingLanguages", existingLanguages);
         model.addAttribute("existingDomains", existingDomains);
-        return "uploadQuestionsFromFile";
+        return "questions/upload/uploadQuestionsFromFile";
     }
 
     @PostMapping("/upload-questions")
@@ -213,6 +144,30 @@ public class QuestionController {
 
         writer.flush();
         writer.close();
+    }
+
+    @PostMapping("/delete/{id}")
+    public String deleteQuestion(@PathVariable Long id) {
+
+        questionService.deleteQuestionById(id);
+        return "redirect:/questions/all";
+    }
+
+    @PostMapping("/deleteAllQuestions")
+    public String deleteAllQuestions() {
+        questionService.deleteAllQuestions();
+        return "redirect:/questions/all";
+    }
+
+    @GetMapping("/exportAllQuestions")
+    public void exportQuestions(HttpServletResponse response) throws IOException {
+        questionService.exportQuestionsToCSV(response);
+    }
+
+    @PostMapping("/toggleActive/{id}")
+    public String toggleActiveStatus(@PathVariable Long id) {
+        questionService.toggleActiveStatus(id);
+        return "redirect:/questions/all";  // Redirect back to the questions list
     }
 
 }

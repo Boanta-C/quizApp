@@ -22,7 +22,7 @@ public class OptionService {
         return optionRepository.findByQuestionId(questionId);
     }
 
-    public List<OptionDTO> convertByQuestionIdToOptionDTO(Long id) {
+    public List<OptionDTO> getOptionsDTOByQuestionId(Long id) {
         return optionRepository.findByQuestionId(id)
                 .stream()
                 .map(option -> new OptionDTO(option.getOptionText(), option.isCorrect()))

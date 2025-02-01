@@ -1,7 +1,9 @@
 package org.example.quizapp.controller;
 
+import jakarta.servlet.http.HttpSession;
 import org.example.quizapp.dto.QuestionDTO;
 import org.example.quizapp.entity.Question;
+import org.example.quizapp.service.AnswerService;
 import org.example.quizapp.service.QuestionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -23,10 +25,12 @@ import java.util.List;
 public class QuizController {
 
     private final QuestionService questionService;
+    private final AnswerService answerService;
 
     @Autowired
-    public QuizController(QuestionService questionService) {
+    public QuizController(QuestionService questionService, AnswerService answerService) {
         this.questionService = questionService;
+        this.answerService = answerService;
     }
 
     @GetMapping("/setup")
@@ -36,7 +40,7 @@ public class QuizController {
         model.addAttribute("questionTypes", questionService.getDistinctQuestionTypes());
         model.addAttribute("difficultyLevels", questionService.getDistinctDifficultyLevels());
 
-        return "quizSetup";
+        return "quiz/quizSetup";
     }
 
     @PostMapping("/setup")
@@ -54,12 +58,54 @@ public class QuizController {
                 numberOfQuestions, difficultyLevels);
 
         for (Question question : selectedQuestions) {
-            selectedQuestionDTOS.add(questionService.convertToQuestionDTO(question));
+            selectedQuestionDTOS.add(questionService.convertQuestionToDto(question));
         }
 
         model.addAttribute("selectedQuestions", selectedQuestionDTOS);
 
         return "redirect:/quiz/question?index=0";
+    }
+
+    @GetMapping("/question")
+    public String showQuestion(@SessionAttribute("selectedQuestions") List<QuestionDTO> selectedQuestionDTOS,
+                               @RequestParam(defaultValue = "0") int index,
+                               Model model) {
+
+        if (index >= selectedQuestionDTOS.size()) {
+            return "redirect:/quiz/results"; // If no more questions, go to results page
+        }
+
+        model.addAttribute("question", selectedQuestionDTOS.get(index));
+        model.addAttribute("currentIndex", index);
+        model.addAttribute("totalQuestions", selectedQuestionDTOS.size());
+
+        return "quiz/quizQuestion";
+    }
+
+    @PostMapping("/question")
+    public String sendAnswer(@RequestParam int currentIndex,
+                             @RequestParam String answer,
+                             @RequestParam String questionType,
+                             @SessionAttribute(value = "userAnswers", required = false) List<String> userAnswers,
+                             HttpSession session) {
+
+
+
+        userAnswers = answerService.processAnswer(userAnswers,answer, questionType, currentIndex);
+        session.setAttribute("userAnswers", userAnswers);
+
+        return "redirect:/quiz/question?index=" + (currentIndex + 1);
+    }
+
+    @GetMapping("/results")
+    public String showResults(@SessionAttribute("selectedQuestions") List<QuestionDTO> selectedQuestionDTOS,
+                              @SessionAttribute("userAnswers") List<String> userAnswers,
+                              Model model) {
+
+        model.addAttribute("questions", selectedQuestionDTOS);
+        model.addAttribute("userAnswers", userAnswers);
+
+        return "quiz/quizResults";
     }
 
     @GetMapping("/getDomainsByLanguage")
@@ -82,40 +128,29 @@ public class QuizController {
 
     @GetMapping("/getQuestionTypesByDomains")
     @ResponseBody
-    public List<String> getQuestionTypesByDomains(@RequestParam List<String> domains) {
-        return questionService.getQuestionTypesByDomains(domains);
+    public List<String> getQuestionTypesByDomainsAndLanguage(@RequestParam List<String> domains,
+                                                             String language) {
+        return questionService.getQuestionTypesByDomainsAndLanguage(domains, language);
     }
 
     @GetMapping("/getDifficultyLevelsByQuestionTypes")
     @ResponseBody
-    public List<String> getDifficultyLevelsByQuestionTypes(@RequestParam List<String> questionTypes) {
-        return questionService.getDifficultyLevelsByQuestionTypes(questionTypes);
+    public List<String> getDifficultyLevelsByQuestionTypes(@RequestParam List<String> questionTypes, @RequestParam (required = false) List<String> domains) {
+        return questionService.getDifficultyLevelsByQuestionTypes(questionTypes, domains);
     }
 
     @GetMapping("/getDifficultyLevelsByDomains")
     @ResponseBody
-    public List<String> getDifficultyLevelsByDomains(@RequestParam List<String> domains) {
-        return questionService.getDifficultyLevelsByDomains(domains);
+    public List<String> getDifficultyLevelsByDomains(@RequestParam List<String> domains, String language) {
+        return questionService.getDifficultyLevelsByDomainsAndLanguage(domains, language);
     }
 
-    @GetMapping("/question")
-    public String showQuestion(@SessionAttribute("selectedQuestions") List<QuestionDTO> selectedQuestionDTOS,
-                               @RequestParam(defaultValue = "0") int index,
-                               Model model) {
-
-        if (index >= selectedQuestionDTOS.size()) {
-            return "redirect:/quiz/results"; // If no more questions, go to results page
-        }
-
-        model.addAttribute("question", selectedQuestionDTOS.get(index));
-        model.addAttribute("currentIndex", index);
-        model.addAttribute("totalQuestions", selectedQuestionDTOS.size());
-
-        return "quizQuestion";
-    }
-
-    @PostMapping("/question")
-    public String nextQuestion(@RequestParam int currentIndex) {
-        return "redirect:/quiz/question?index=" + (currentIndex + 1);
+    @GetMapping("/getCountNumberOfSelectedQuestions")
+    @ResponseBody
+    public Integer getCountNumberOfSelectedQuestions(@RequestParam String language,
+                                                     @RequestParam (required = false) List<String> domains,
+                                                     @RequestParam (required = false) List<String> questionTypes,
+                                                     @RequestParam (required = false) List<String> difficultyLevel) {
+        return questionService.getCountNumberOfSelectedQuestions(language, domains, questionTypes, difficultyLevel);
     }
 }

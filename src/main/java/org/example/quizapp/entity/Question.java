@@ -20,9 +20,9 @@ public class Question {
     private Long id;
     @Column(name = "question_type", nullable = false)
     private String questionType;
-    @Column(name = "question_text", nullable = false)
+    @Column(name = "question_text", columnDefinition = "TEXT", nullable = false)
     private String questionText;
-    @Column(name = "correct_answer", nullable = false)
+    @Column(name = "correct_answer", columnDefinition = "TEXT", nullable = false)
     private String correctAnswer;
     @Column(name = "question_domain", nullable = false)
     private String domain;

@@ -148,8 +148,8 @@
         </thead>
         <tbody id="questionsTableBody">
         <!-- Loop through all questions (Thymeleaf iteration) -->
-        <tr th:each="question : ${questions}" class="align-middle">
-            <td th:text="${question.id}"></td>
+        <tr th:each="question, status : ${questions}" class="align-middle">
+            <td th:text="${status.index + 1}"></td>
             <td class="text-truncate" style="max-width: 150px;" th:text="${question.questionText}" th:attr="title=${question.questionText}"></td>
             <td th:text="${question.questionType}"></td>
             <td th:text="${question.language}"></td>
@@ -183,7 +183,6 @@
 </div>
 
 <!-- Link to Bootstrap JS and Popper.js -->
-<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" integrity="sha384-oBqDVmMz4fnFO9gybARJY3tBqD0M6md3t4rI5m2bYl6M5/57b6q8a2QBO5YY3t6a" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 
 <!-- Custom JavaScript for filtering questions -->
