@@ -125,6 +125,17 @@ public class QuestionController {
         return "redirect:/questions/all";
     }
 
+    @PostMapping("/deleteAllQuestions")
+    public String deleteAllQuestions() {
+        questionService.deleteAllQuestions();
+        return "redirect:/questions/all";
+    }
+
+    @GetMapping("/exportAllQuestions")
+    public void exportQuestions(HttpServletResponse response) throws IOException {
+        questionService.exportQuestionsToCSV(response);
+    }
+
     @PostMapping("/toggleActive/{id}")
     public String toggleActiveStatus(@PathVariable Long id) {
         questionService.toggleActiveStatus(id);

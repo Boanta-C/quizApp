@@ -34,11 +34,35 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
             "WHERE q.language = :language " +
             "AND q.domain IN :domains " +
             "AND q.questionType IN :questionTypes " +
-            "AND (:difficultyLevel IS NULL OR q.difficultyLevel = :difficultyLevel) " +
+            "AND (:difficultyLevel IS NULL OR q.difficultyLevel IN :difficultyLevel) " +
             "ORDER BY RAND()")
     List<Question> findRandomQuestions(@Param("language") String language,
                                        @Param("domains") List<String> domains,
                                        @Param("questionTypes") List<String> questionTypes,
-                                       @Param("difficultyLevel") String difficultyLevel,
+                                       @Param("difficultyLevel") List<String> difficultyLevel,
                                        Pageable pageable);
+
+    @Query("SELECT DISTINCT q.domain FROM Question q " +
+            "WHERE q.language = :language")
+    List<String> findDomainsByLanguage(String language);
+
+    @Query("SELECT DISTINCT q.questionType FROM Question q " +
+            "WHERE q.language = :language")
+    List<String> findQuestionTypesByLanguage(String language);
+
+    @Query("SELECT DISTINCT q.difficultyLevel FROM Question q " +
+            "WHERE q.language = :language")
+    List<String> findDifficultyLevelsByLanguage(String language);
+
+    @Query("SELECT DISTINCT q.questionType FROM Question q " +
+            "WHERE q.domain IN :domains")
+    List<String> findQuestionTypesByDomains(List<String> domains);
+
+    @Query("SELECT DISTINCT q.difficultyLevel FROM Question q " +
+            "WHERE q.questionType IN :questionTypes")
+    List<String> findDifficultyLevelsByQuestionTypes(List<String> questionTypes);
+
+    @Query("SELECT DISTINCT q.difficultyLevel FROM Question q " +
+            "WHERE q.domain IN :domains")
+    List<String> findDifficultyLevelsByDomains(List<String> domains);
 }

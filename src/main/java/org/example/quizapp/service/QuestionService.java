@@ -1,6 +1,8 @@
 package org.example.quizapp.service;
 
 import com.opencsv.CSVReader;
+import com.opencsv.CSVWriter;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.transaction.Transactional;
 import org.example.quizapp.dto.OptionDTO;
 import org.example.quizapp.dto.QuestionDTO;
@@ -17,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -26,6 +29,9 @@ public class QuestionService {
 
     private final QuestionRepository questionRepository;
     private final OptionRepository optionRepository;
+
+    @Autowired
+    private OptionService optionService;
 
     @Autowired
     public QuestionService(QuestionRepository questionRepository,
@@ -66,8 +72,11 @@ public class QuestionService {
                                              List<String> domains,
                                              List<String> questionTypes,
                                              int numberOfQuestions,
-                                             String difficultyLevels) {
+                                             List<String> difficultyLevels) {
         Pageable pageable = PageRequest.of(0, numberOfQuestions);
+        if(difficultyLevels.isEmpty()) {
+            difficultyLevels = null;
+        }
         return questionRepository.findRandomQuestions(language,domains, questionTypes, difficultyLevels, pageable);
     }
 
@@ -189,7 +198,6 @@ public class QuestionService {
                     questionDTO.setDifficultyLevel(row[3]);
                     questionDTO.setQuestionText(row[4]);
                     questionDTO.setCorrectAnswer(row[5]);
-                    char letter = 'A';
                     if ("Single Choice".equals(questionType) || "Multiple Choice".equals(questionType)) {
                         List<OptionDTO> optionDTOs = new ArrayList<>();
                         for (int i = 6; i < row.length; i += 2) {
@@ -203,10 +211,9 @@ public class QuestionService {
 
                             boolean isCorrect = "true".equalsIgnoreCase(isCorrectStr);
                             OptionDTO optionDTO = new OptionDTO();
-                            optionDTO.setOptionText(letter + ". " + optionText);
+                            optionDTO.setOptionText(optionText);
                             optionDTO.setCorrect(isCorrect);
                             optionDTOs.add(optionDTO);
-                            letter++;
                         }
                         questionDTO.setOptions(optionDTOs);
                     }
@@ -223,6 +230,55 @@ public class QuestionService {
         return errors;
     }
 
+    public void exportQuestionsToCSV(HttpServletResponse response) throws IOException {
+        List<Question> questions = questionRepository.findAll();
+        List<QuestionDTO> questionDTOS = new ArrayList<>();
+
+        String[] headers = {"Question Type", "Domain", "Language", "Difficulty Level", "Question Text", "Correct Answer", "Option 1 Text", "Option 1 Correct", "Option 2 Text", "Option 2 Correct", "Option 3 Text", "Option 3 Correct", "Option 4 Text", "Option 4 Correct"};
+        response.setContentType("text/csv");
+        response.setHeader("Content-Disposition", "attachment; filename=questions.csv");
+
+        for (Question question : questions) {
+            questionDTOS.add(convertToQuestionDTO(question));
+        }
+
+
+        try (CSVWriter writer = new CSVWriter(new OutputStreamWriter(response.getOutputStream()))) {
+            writer.writeNext(headers);
+
+            for (QuestionDTO questionDTO : questionDTOS) {
+                List<String> row = new ArrayList<>();
+                row.add(questionDTO.getQuestionType());
+                row.add(questionDTO.getDomain());
+                row.add(questionDTO.getLanguage());
+                row.add(questionDTO.getDifficultyLevel());
+                row.add(questionDTO.getQuestionText());
+                row.add(questionDTO.getCorrectAnswer());
+
+                if (questionDTO.getOptions() != null) {
+                    int optionCount = 1;
+                    for (OptionDTO optionDTO : questionDTO.getOptions()) {
+                        // Ensure the option count doesn't exceed 4 (if you want to limit to 4 options)
+                        if (optionCount <= 4) {
+                            row.add(optionDTO.getOptionText());
+                            row.add(String.valueOf(optionDTO.isCorrect()));
+                            optionCount++;
+                        }
+                    }
+                }
+
+                // Fill in empty columns for missing options (e.g., if there are fewer than 4 options)
+                while (row.size() < 14) {
+                    row.add(""); // Add empty values for missing options
+                }
+
+                writer.writeNext(row.toArray(new String[0]));
+            }
+        } catch (IOException e) {
+            throw new IOException("Error exporting questions to CSV", e);
+        }
+    }
+
     public void toggleActiveStatus(Long id) {
         Optional<Question> optionalQuestion = questionRepository.findById(id);
         if (optionalQuestion.isPresent()) {
@@ -234,5 +290,48 @@ public class QuestionService {
 
     public void deleteQuestionById(Long id) {
         questionRepository.deleteById(id);
+    }
+
+    public QuestionDTO convertToQuestionDTO(Question question) {
+        QuestionDTO questionDTO = new QuestionDTO();
+        questionDTO.setId(question.getId());
+        questionDTO.setQuestionType(question.getQuestionType());
+        questionDTO.setQuestionText(question.getQuestionText());
+        questionDTO.setDomain(question.getDomain());
+        questionDTO.setLanguage(question.getLanguage());
+        questionDTO.setCorrectAnswer(question.getCorrectAnswer());
+        questionDTO.setDifficultyLevel(question.getDifficultyLevel());
+        questionDTO.setOptions(optionService.convertByQuestionIdToOptionDTO(question.getId()));
+
+        return questionDTO;
+    }
+
+    public List<String> getDomainsByLanguage(String language) {
+        return questionRepository.findDomainsByLanguage(language);
+    }
+
+    public List<String> getQuestionTypesByLanguage(String language) {
+        return questionRepository.findQuestionTypesByLanguage(language);
+    }
+
+    public List<String> getDifficultyLevelByLanguage(String language) {
+        return questionRepository.findDifficultyLevelsByLanguage(language);
+    }
+
+    public List<String> getQuestionTypesByDomains(List<String> domains) {
+        return questionRepository.findQuestionTypesByDomains(domains);
+
+    }
+
+    public List<String> getDifficultyLevelsByQuestionTypes(List<String> questionTypes) {
+        return questionRepository.findDifficultyLevelsByQuestionTypes(questionTypes);
+    }
+
+    public List<String> getDifficultyLevelsByDomains(List<String> domains) {
+        return questionRepository.findDifficultyLevelsByDomains(domains);
+    }
+
+    public void deleteAllQuestions() {
+        questionRepository.deleteAll();
     }
 }

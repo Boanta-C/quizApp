@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Quiz</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+<div th:replace="~{header :: header}"></div>
+
+<div class="container mt-5">
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h4 class="text-primary text-center">Question <span th:text="${currentIndex + 1}"></span> of <span th:text="${totalQuestions}"></span></h4>
+            <p class="fw-bold mt-3" th:text="${question.questionText}"></p>
+
+            <!-- Form to submit answer -->
+            <form th:action="@{/quiz/question?index={index}(index=${currentIndex})}" method="post">
+                <input type="hidden" name="currentIndex" th:value="${currentIndex}" />
+
+                <!-- Render based on the type of question -->
+                <div th:switch="${question.questionType}">
+
+                    <!-- Single choice question (Radio buttons) -->
+                    <div th:case="'Single Choice'">
+                        <div class="mb-3" th:each="option : ${question.options}">
+                            <input type="radio" class="form-check-input" name="answer" th:value="${option.optionText}" required>
+                            <label class="form-check-label" th:text="${option.optionText}"></label>
+                        </div>
+                    </div>
+
+                    <!-- Multiple choice question (Checkboxes) -->
+                    <div th:case="'Multiple Choice'">
+                        <div class="mb-3" th:each="option : ${question.options}">
+                            <input type="checkbox" class="form-check-input" name="answer" th:value="${option.optionText}">
+                            <label class="form-check-label" th:text="${option.optionText}"></label>
+                        </div>
+                    </div>
+
+                    <!-- Open-ended question (Text area) -->
+                    <div th:case="'Open Ended'">
+                        <div class="mb-3">
+                            <textarea class="form-control" name="answer" rows="3" required></textarea>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="text-center">
+                    <button type="submit" class="btn btn-primary fw-bold">Next</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>
