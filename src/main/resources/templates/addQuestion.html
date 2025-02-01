@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Add New Question</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+
+<div th:replace="~{header :: header}"></div>
+
+<div class="container mt-5">
+    <h1 class="mb-4">Add New Question</h1>
+
+    <form th:action="@{/questions/add-single-question}" th:object="${questionDTO}" method="post" class="needs-validation" novalidate>
+        <!-- Language -->
+        <div class="mb-3">
+            <label for="language" class="form-label">Language</label>
+            <select id="language" class="form-select" th:field="*{language}" required>
+                <option value="" disabled selected>Choose Language</option>
+                <option value="English">English</option>
+                <option value="Romanian">Romanian</option>
+            </select>
+            <div class="invalid-feedback">
+                Please select a language.
+            </div>
+        </div>
+
+        <!-- Domain -->
+        <div class="mb-3">
+            <label for="domain" class="form-label">Domain</label>
+            <select id="domain" class="form-select" th:field="*{domain}" required>
+                <option value="" disabled selected>Choose Domain</option>
+                <option value="Manual QA">Manual QA</option>
+                <option value="Automation QA">Automation QA</option>
+                <option value="Java">Java</option>
+            </select>
+            <div class="invalid-feedback">
+                Please select a domain.
+            </div>
+        </div>
+
+        <!-- Question Type -->
+        <div class="mb-3">
+            <label for="questionType" class="form-label">Question Type</label>
+            <select id="questionType" class="form-select" th:field="*{questionType}" required>
+                <option value="" disabled selected>Choose Question Type</option>
+                <option value="Open Ended">Open Ended</option>
+                <option value="Multiple Choice">Multiple Choice</option>
+                <option value="Single Choice">Single Choice</option>
+            </select>
+            <div class="invalid-feedback">
+                Please select a question type.
+            </div>
+        </div>
+
+        <!-- Question Text -->
+        <div class="mb-3">
+            <label for="questionText" class="form-label">Question Text</label>
+            <input type="text" id="questionText" class="form-control" th:field="*{questionText}" placeholder="Enter the question text" required/>
+            <div class="invalid-feedback">
+                Question text is required.
+            </div>
+        </div>
+
+        <!-- Correct Answer -->
+        <div class="mb-3">
+            <label for="correctAnswer" class="form-label">Correct Answer</label>
+            <input type="text" id="correctAnswer" class="form-control" th:field="*{correctAnswer}" placeholder="Enter the correct answer" required/>
+            <div class="invalid-feedback">
+                Correct answer is required.
+            </div>
+        </div>
+
+        <!-- Difficulty Level -->
+        <div class="mb-3">
+            <label for="difficultyLevel" class="form-label">Difficulty Level</label>
+            <select id="difficultyLevel" class="form-select" th:field="*{difficultyLevel}">
+                <option value="" disabled selected>Choose Difficulty Level (optional)</option>
+                <option value="Easy">Easy</option>
+                <option value="Medium">Medium</option>
+                <option value="Hard">Hard</option>
+            </select>
+            <div class="invalid-feedback">
+                Please select a question type.
+            </div>
+        </div>
+
+        <!-- Options for Multiple Choice/Single Choice -->
+        <div id="optionsContainer" style="display: none;">
+            <h4 class="mt-3">Options</h4>
+            <div th:each="i : ${#numbers.sequence(0,3)}" class="mb-3">
+                <label th:for="${'optionText_' + i}" class="form-label">Option <span th:text="${i + 1}"></span></label>
+                <input type="text" th:id="${'optionText_' + i}" class="form-control"
+                       th:name="options[__${i}__].optionText" placeholder="Enter option text" required/>
+                <div class="form-check">
+                    <input type="checkbox" th:id="${'isCorrect_' + i}" class="form-check-input"
+                           th:name="options[__${i}__].isCorrect"/>
+                    <label th:for="${'isCorrect_' + i}" class="form-check-label">Is Correct?</label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="btn btn-primary">Add Question</button>
+    </form>
+</div>
+
+<!-- Bootstrap JS and dependencies -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // Enable Bootstrap form validation
+    (() => {
+        'use strict';
+
+        const forms = document.querySelectorAll('.needs-validation');
+
+        Array.from(forms).forEach(form => {
+            form.addEventListener('submit', event => {
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+
+                form.classList.add('was-validated');
+            }, false);
+        });
+    })();
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const questionTypeElement = document.getElementById("questionType");
+        const optionsContainer = document.getElementById("optionsContainer");
+
+        questionTypeElement.addEventListener("change", function () {
+            const selectedType = questionTypeElement.value;
+            const optionInputs = optionsContainer.querySelectorAll("input[type='text']");
+
+            if (selectedType === "Multiple Choice" || selectedType === "Single Choice") {
+                // Show the options container and set inputs as required
+                optionsContainer.style.display = "block";
+                optionInputs.forEach(input => input.setAttribute("required", "true"));
+            } else {
+                // Hide the options container and remove the required attribute
+                optionsContainer.style.display = "none";
+                optionInputs.forEach(input => input.removeAttribute("required"));
+            }
+        });
+    });
+
+</script>
+</body>
