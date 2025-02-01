@@ -338,6 +338,14 @@ public class QuestionService {
         return questionDTO;
     }
 
+    public void createInitialOptions (QuestionDTO questionDTO) {
+        List<OptionDTO> options = new ArrayList<>();
+        for (int i = 0; i < 4; i++) {
+            options.add(new OptionDTO());
+        }
+        questionDTO.setOptions(options);
+    }
+
     private static List<String> getStrings(QuestionDTO questionDTO) {
         List<String> row = new ArrayList<>();
         row.add(questionDTO.getQuestionType());

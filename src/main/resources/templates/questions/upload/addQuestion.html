@@ -88,16 +88,24 @@
         <!-- Options for Multiple Choice/Single Choice -->
         <div id="optionsContainer" style="display: none;">
             <h4 class="mt-3">Options</h4>
-            <div th:each="i : ${#numbers.sequence(0,3)}" class="mb-3">
-                <label th:for="${'optionText_' + i}" class="form-label">Option <span th:text="${i + 1}"></span></label>
-                <input type="text" th:id="${'optionText_' + i}" class="form-control"
-                       th:name="options[__${i}__].optionText" placeholder="Enter option text" required/>
-                <div class="form-check">
-                    <input type="checkbox" th:id="${'isCorrect_' + i}" class="form-check-input"
-                           th:name="options[__${i}__].isCorrect"/>
-                    <label th:for="${'isCorrect_' + i}" class="form-check-label">Is Correct?</label>
+            <div id="optionsInputs">
+                <div th:each="option, iStat : *{options}" class="mb-3 option-item" th:data-option-index="${iStat.index}">
+                    <label th:for="${'optionText_' + iStat.index}" class="form-label">Option <span class="option-number" th:text="${iStat.index + 1}"></span></label>
+                    <div class="input-group">
+                        <input type="text" th:id="${'optionText_' + iStat.index}" class="form-control option-text-input"
+                               th:name="options[__${iStat.index}__].optionText"
+                               th:value="${#strings.substringAfter(option.optionText, '. ')}"
+                               placeholder="Enter option text" required/>
+                        <button type="button" class="btn btn-danger remove-option-btn">Remove</button>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" th:id="${'isCorrect_' + iStat.index}" class="form-check-input is-correct-checkbox"
+                               th:field="*{options[__${iStat.index}__].correct}"/>
+                        <label th:for="${'isCorrect_' + iStat.index}" class="form-check-label">Is Correct?</label>
+                    </div>
                 </div>
             </div>
+            <button type="button" id="addOptionButton" class="btn btn-secondary mt-2">Add Option</button>
         </div>
 
         <!-- Submit Button -->
@@ -130,21 +138,77 @@
     document.addEventListener("DOMContentLoaded", function () {
         const questionTypeElement = document.getElementById("questionType");
         const optionsContainer = document.getElementById("optionsContainer");
+        const optionsInputsContainer = document.getElementById("optionsInputs");
+        const addOptionButton = document.getElementById("addOptionButton");
 
-        questionTypeElement.addEventListener("change", function () {
+        function updateOptionVisibility() {
             const selectedType = questionTypeElement.value;
-            const optionInputs = optionsContainer.querySelectorAll("input[type='text']");
+            const optionInputs = optionsContainer.querySelectorAll(".option-text-input");
 
             if (selectedType === "Multiple Choice" || selectedType === "Single Choice") {
-                // Show the options container and set inputs as required
                 optionsContainer.style.display = "block";
                 optionInputs.forEach(input => input.setAttribute("required", "true"));
             } else {
-                // Hide the options container and remove the required attribute
                 optionsContainer.style.display = "none";
                 optionInputs.forEach(input => input.removeAttribute("required"));
             }
+        }
+
+        questionTypeElement.addEventListener("change", updateOptionVisibility);
+        updateOptionVisibility(); // Initial call to set visibility on page load
+
+        addOptionButton.addEventListener("click", function () {
+            const optionItems = optionsInputsContainer.querySelectorAll('.option-item');
+            let nextIndex = optionItems.length; // Start index for the new option
+
+            const newOptionDiv = document.createElement('div');
+            newOptionDiv.classList.add('mb-3', 'option-item');
+            newOptionDiv.setAttribute('data-option-index', nextIndex);
+
+            newOptionDiv.innerHTML = `
+                <label for="optionText_${nextIndex}" class="form-label">Option <span class="option-number">${nextIndex + 1}</span></label>
+                <div class="input-group">
+                    <input type="text" id="optionText_${nextIndex}" class="form-control option-text-input"
+                           name="options[${nextIndex}].optionText"
+                           placeholder="Enter option text" required/>
+                    <button type="button" class="btn btn-danger remove-option-btn">Remove</button>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" id="isCorrect_${nextIndex}" class="form-check-input is-correct-checkbox"
+                           name="options[${nextIndex}].correct"/>
+                    <label for="isCorrect_${nextIndex}" class="form-check-label">Is Correct?</label>
+                </div>
+            `;
+            optionsInputsContainer.appendChild(newOptionDiv);
         });
+
+
+        optionsInputsContainer.addEventListener('click', function(event) {
+            if (event.target && event.target.classList.contains('remove-option-btn')) {
+                event.preventDefault();
+                const optionItem = event.target.closest('.option-item');
+                if (optionsInputsContainer.children.length > 2) {
+                    optionItem.remove();
+                    updateOptionNumbers();
+                } else {
+                alert("You must have at least two options.");
+                }
+            }
+        });
+
+        function updateOptionNumbers() {
+            const optionItems = optionsInputsContainer.querySelectorAll('.option-item');
+            optionItems.forEach((item, index) => {
+                item.setAttribute('data-option-index', index);
+                item.querySelector('.option-number').textContent = index + 1;
+                item.querySelector('.option-text-input').id = `optionText_${index}`;
+                item.querySelector('.option-text-input').setAttribute('name', `options[${index}].optionText`);
+                item.querySelector('.is-correct-checkbox').id = `isCorrect_${index}`;
+                item.querySelector('.is-correct-checkbox').setAttribute('name', `options[${index}].correct`);
+                item.querySelector('label[for*="optionText_"]').setAttribute('for', `optionText_${index}`);
+                item.querySelector('label[for*="isCorrect_"]').setAttribute('for', `isCorrect_${index}`);
+            });
+        }
     });
 
 </script>

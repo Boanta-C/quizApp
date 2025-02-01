@@ -51,14 +51,20 @@ public class QuestionController {
 
     @GetMapping("/add-single-question")
     public String showAddQuestionForm(Model model) {
+
+        QuestionDTO questionDTO = new QuestionDTO();
+        questionService.createInitialOptions(questionDTO);
+
         List<String> domains = questionService.getAllDomains();
         List<String> languages = questionService.getAllLanguages();
-        QuestionDTO questionDTO = new QuestionDTO();
+
         model.addAttribute("questionDTO", questionDTO);
         model.addAttribute("domains", domains);
         model.addAttribute("languages", languages);
         return "questions/upload/addQuestion";
     }
+
+
 
     @PostMapping("/add-single-question")
     public String addQuestion(@ModelAttribute @Valid QuestionDTO questionDTO, Model model, RedirectAttributes redirectAttributes) {
